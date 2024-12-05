@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Koaloa</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script src="//unpkg.com/alpinejs" defer></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <style>
+        .parallax-image {
+            position: absolute;
+            top: -10%;
+            left: 0;
+            width: 100%;
+            height: 140%;
+            background-size: cover;
+            background-position: center;
+            will-change: transform;
+        }
+
+        .image-1 {
+            background-image: url('./imgs/img1.jpeg');
+        }
+
+        .image-2 {
+            background-image: url('./imgs/img2.jpg');
+        }
+
+        .content-wrapper {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 50;
+            background: rgb(249 250 251);
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .content-wrapper.hidden {
+            transform: translateY(-100%);
+            opacity: 0;
+        }
+
+        .content-wrapper.sliding-in {
+            animation: slideIn 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        .content-wrapper.sliding-out {
+            animation: slideOut 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        @keyframes slideIn {
+            0% {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+            100% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            0% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+        }
+
+        .content-spacer {
+            transition: height 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .social-icons-container {
+            position: absolute;
+            right: 2rem; /* 8 in the original class right-8 */
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 60;
+        }
+
+        /* Combine sliding animations */
+        @keyframes slideVertical {
+            from {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .sliding-in {
+            animation: slideVertical 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        .sliding-out {
+            animation: slideVertical 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards reverse;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 text-gray-800 min-h-screen"
+      x-data="{
+            isMobile: window.innerWidth < 768,
+            page: 'ourStory',
+            showScrollButton: false,
+            hideWrapper: false,
+            wrapperHeight: 0,
+            lastScrollPosition: 0,
+            isSliding: false,
+            // Add navigation items as data to make it more maintainable
+            navItems: [
+                { id: 'ourStory', label: 'Our Story' },
+                { id: 'ourCrafts', label: 'Our Crafts' },
+                { id: 'contact', label: 'Contact' }
+            ],
+            // Add social media items as data
+            socialItems: [
+                { platform: 'facebook', icon: 'fab fa-facebook-f', color: 'blue', url: 'https://facebook.com' },
+                { platform: 'instagram', icon: 'fab fa-instagram', color: 'orange', url: 'https://instagram.com' },
+                { platform: 'whatsapp', icon: 'fab fa-whatsapp', color: 'green', url: 'https://whatsapp.com' }
+            ]
+      }"
+      x-init="
+      $watch('isMobile', () => {
+            window.addEventListener('resize', () => { isMobile = window.innerWidth < 768; });
+        });
+        $nextTick(() => {
+                wrapperHeight = $refs.contentWrapper.offsetHeight;
+                $refs.contentSpacer.style.height = `${wrapperHeight}px`;
+
+                const debounce = (func, wait) => {
+                    let timeout;
+                    return function executedFunction(...args) {
+                        const later = () => {
+                            clearTimeout(timeout);
+                            func(...args);
+                        };
+                        clearTimeout(timeout);
+                        timeout = setTimeout(later, wait);
+                    };
+                };
+
+                const handleScroll = debounce(() => {
+                    const scrollPosition = window.scrollY;
+                    const scrollPercent = (scrollPosition / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
+                    showScrollButton = scrollPosition > 100;
+
+                    if (scrollPercent > 30 && scrollPosition > lastScrollPosition) {
+                        if (!hideWrapper) {
+                            $refs.contentWrapper.classList.add('sliding-out');
+                            $refs.contentWrapper.classList.remove('sliding-in');
+                            setTimeout(() => {
+                                hideWrapper = true;
+                            }, 800);
+                        }
+                    } else if (scrollPercent <= 30 || scrollPosition < lastScrollPosition) {
+                        if (hideWrapper) {
+                            hideWrapper = false;
+                            $refs.contentWrapper.classList.add('sliding-in');
+                            $refs.contentWrapper.classList.remove('sliding-out');
+                        }
+                    }
+
+                    lastScrollPosition = scrollPosition;
+                }, 50);
+
+                window.addEventListener('scroll', handleScroll);
+            });
+        "
+>
+<!-- Mobile Layout -->
+<template x-if="isMobile">
+    <div>
+        <header class="bg-transparent flex flex-col py-4 relative container mx-auto">
+            <div class="flex justify-between  items-center relative">
+                <div class="flex space-x-4 w-24">
+                    <template x-for="item in socialItems" :key="item.platform">
+                        <a :href="item.url" target="_blank" :aria-label="item.platform">
+                            <i :class="[item.icon, `text-[#232328] hover:text-${item.color}-500 text-xl`]"></i>
+                        </a>
+                    </template>
+                </div>
+                <!-- Empty div for spacing -->
+                <div x-data="{ isOpen: false }">
+                    <button
+                            @click="isOpen = !isOpen"
+                            class="relative z-50 p-2"
+                            :aria-label="isOpen ? 'Close menu' : 'Open menu'"
+                    >
+                        <i
+                                class="material-icons"
+                                style="font-size: 29px; padding-right: 14px"
+                                x-text="isOpen ? 'close' : 'menu'"
+                        ></i>
+                    </button>
+
+                    <!-- Full Screen Navigation Overlay -->
+                    <div
+                            x-show="isOpen"
+                            x-transition:enter="transition ease-out duration-500 transform"
+                            x-transition:enter-start="opacity-0 -translate-y-full"
+                            x-transition:enter-end="opacity-100 translate-y-0"
+                            x-transition:leave="transition ease-in duration-500 transform"
+                            x-transition:leave-start="opacity-100 translate-y-0"
+                            x-transition:leave-end="opacity-0 -translate-y-full"
+                            class="fixed inset-0 bg-white z-40"
+                    >
+                        <div class="flex flex-col items-center justify-center h-full ">
+                            <div class="flex justify-center items-center">
+                                <h1 class="text-xl">MENU</h1>
+                            </div>
+                            <div class="flex items-center justify-center">
+                                <div class="bg-gray-800 w-32 h-0.5 mt-1 mb-4"></div>
+                            </div>
+                            <div class="flex flex-col items-center space-y-8">
+                                <button
+                                        @click="page = 'ourStory'; isOpen = false"
+                                        class="text-2xl text-gray-800 hover:text-gray-600 transition-colors"
+                                >Our Story</button>
+                                <button
+                                        @click="page = 'ourCrafts'; isOpen = false"
+                                        class="text-2xl text-gray-800 hover:text-gray-600 transition-colors"
+                                >Our Crafts</button>
+                                <button
+                                        @click="page = 'contact'; isOpen = false"
+                                        class="text-2xl text-gray-800 hover:text-gray-600 transition-colors"
+                                >Contact</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div class="flex items-center justify-center pl-2">
+                <!-- Logo center -->
+                <div class="flex justify-center items-center">
+                    <svg id="Logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 117.41 15.95"
+                         class="h-[30px] mt-8 mb-4">
+                    </svg>
+                </div>
+            </div>
+        </header>
+        <main >
+            <div x-show="page === 'ourStory'" class="transition-all ">
+                <div class="flex item-center justify-center py-6 bg-transparent">
+                    <h1 class="text-3xl">Our Story</h1>
+                </div>
+                <section>
+                    <img src="./imgs/img1.jpeg" alt="Sample Image" class="w-full h-auto">
+                </section>
+                <section class="flex flex-col py-4 bg-[#f6f3ef]">
+                    <div class="flex justify-center items-center">
+                        <h1 class="text-xl">THE BRAND</h1>
+                    </div>
+                    <div class="flex items-center justify-center">
+                        <div class="bg-gray-800 w-32 h-0.5 mt-1 mb-4"></div>
+                    </div>
+                    <div class="flex items-center justify-center px-4 text-center">
+                        <p>I'm a paragraph. Click here to add your own text and edit me. It’s easy. click “Edit Text” or
+                            double click me to
+                            add your own content and make changes to the font. Feel free to drag and drop me anywhere you
+                            like on your page. I’m a great place for you to tell a story and let your users know a little
+                            more about you.</p>
+                    </div>
+                </section>
+                <section>
+                    <img src="./imgs/img2.jpg" alt="Sample Image" class="w-full h-auto">
+                </section>
+                <section class="flex flex-col py-4 bg-[#f6f3ef]">
+                    <div class="flex justify-center items-center">
+                        <h1 class="text-xl">THE DESIGNERS</h1>
+                    </div>
+                    <div class="flex items-center justify-center">
+                        <div class="bg-gray-800 w-32 h-0.5 mt-1 mb-4"></div>
+                    </div>
+                    <div class="flex items-center justify-center px-4 text-center">
+                        <p>I'm a paragraph. Click here to add your own text and edit me. It’s easy. click “Edit Text” or
+                            double click me to
+                            add your own content and make changes to the font. Feel free to drag and drop me anywhere you
+                            like on your page. I’m a great place for you to tell a story and let your users know a little
+                            more about you.</p>
+                    </div>
+                </section>
+            </div>
+            <div x-show="page === 'ourCrafts'" class="transition-all ">
+                <div class="flex item-center justify-center py-6 bg-transparent">
+                    <h1 class="text-3xl">Our Craft</h1>
+                </div>
+                <section>
+                    <img src="./imgs/img4.jpeg" alt="Sample Image" class="w-full h-auto">
+                </section>
+                <section class="flex flex-col py-4 bg-[#f6f3ef]">
+                    <div class="flex justify-center items-center">
+                        <h1 class="text-xl">THE BRAND</h1>
+                    </div>
+                    <div class="flex items-center justify-center">
+                        <div class="bg-gray-800 w-32 h-0.5 mt-1 mb-4"></div>
+                    </div>
+                    <div class="flex items-center justify-center px-4 text-center">
+                        <p>I'm a paragraph. Click here to add your own text and edit me. It’s easy. click “Edit Text” or
+                            double click me to
+                            add your own content and make changes to the font. Feel free to drag and drop me anywhere you
+                            like on your page. I’m a great place for you to tell a story and let your users know a little
+                            more about you.</p>
+                    </div>
+                </section>
+                <section>
+                    <img src="./imgs/img5.jpeg" alt="Sample Image" class="w-full h-auto">
+                </section>
+                <section class="flex flex-col py-4 bg-[#f6f3ef]">
+                    <div class="flex justify-center items-center">
+                        <h1 class="text-xl">THE DESIGNERS</h1>
+                    </div>
+                    <div class="flex items-center justify-center">
+                        <div class="bg-gray-800 w-32 h-0.5 mt-1 mb-4"></div>
+                    </div>
+                    <div class="flex items-center justify-center px-4 text-center">
+                        <p>I'm a paragraph. Click here to add your own text and edit me. It’s easy. click “Edit Text” or
+                            double click me to
+                            add your own content and make changes to the font. Feel free to drag and drop me anywhere you
+                            like on your page. I’m a great place for you to tell a story and let your users know a little
+                            more about you.</p>
+                    </div>
+                </section>
+            </div>
+            <div x-show="page === 'contact'" class="transition-all ">
+                <div class="flex item-center justify-center py-6 bg-transparent">
+                    <h1 class="text-3xl">Our Story</h1>
+                </div>
+                <section>
+                    <img src="./imgs/img1.jpeg" alt="Sample Image" class="w-full h-auto">
+                </section>
+                <section class="flex flex-col py-4 bg-[#f6f3ef]">
+                    <div class="flex justify-center items-center">
+                        <h1 class="text-xl">THE BRAND</h1>
+                    </div>
+                    <div class="flex items-center justify-center">
+                        <div class="bg-gray-800 w-32 h-0.5 mt-1 mb-4"></div>
+                    </div>
+                    <div class="flex items-center justify-center px-4 text-center">
+                        <p>I'm a paragraph. Click here to add your own text and edit me. It’s easy. click “Edit Text” or
+                            double click me to
+                            add your own content and make changes to the font. Feel free to drag and drop me anywhere you
+                            like on your page. I’m a great place for you to tell a story and let your users know a little
+                            more about you.</p>
+                    </div>
+                </section>
+                <section>
+                    <img src="./imgs/img2.jpg" alt="Sample Image" class="w-full h-auto">
+                </section>
+                <section class="flex flex-col py-4 bg-[#f6f3ef]">
+                    <div class="flex justify-center items-center">
+                        <h1 class="text-xl">THE DESIGNERS</h1>
+                    </div>
+                    <div class="flex items-center justify-center">
+                        <div class="bg-gray-800 w-32 h-0.5 mt-1 mb-4"></div>
+                    </div>
+                    <div class="flex items-center justify-center px-4 text-center">
+                        <p>I'm a paragraph. Click here to add your own text and edit me. It’s easy. click “Edit Text” or
+                            double click me to
+                            add your own content and make changes to the font. Feel free to drag and drop me anywhere you
+                            like on your page. I’m a great place for you to tell a story and let your users know a little
+                            more about you.</p>
+                    </div>
+                </section>
+            </div>
+        </main>
+        <footer class="bg-transparent text-gray-600 ">
+            <div class="container mx-auto grid grid-cols-1 gap-8 py-8 text-center">
+                <!-- Brand Name -->
+                <div class="flex justify-center pl-2">
+                    <svg id="Layer_1" class="h-[60px]" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 535.06 202.75">
+                    </svg>
+                </div>
+                <!-- Navigation Links -->
+                <div>
+                    <h3 class="font-bold mb-2">Navigate</h3>
+                    <ul class="space-y-2">
+                        <li>
+                            <button
+                                    @click="page = 'ourStory'; window.scrollTo(0, 0)"
+                                    class="hover:underline"
+                            >Our Story</button>
+                        </li>
+                        <li>
+                            <button
+                                    @click="page = 'ourCrafts'; window.scrollTo(0, 0)"
+                                    class="hover:underline"
+                            >Our Crafts</button>
+                        </li>
+                        <li>
+                            <button
+                                    @click="page = 'contact'; window.scrollTo(0, 0)"
+                                    class="hover:underline"
+                            >Contact</button>
+                        </li>
+                    </ul>
+                </div>
+                <!-- FAQ & Policy -->
+                <div>
+                    <h3 class="font-bold mb-2">Support</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="hover:underline">FAQ</a></li>
+                        <li><a href="#" class="hover:underline">Policy</a></li>
+                    </ul>
+                </div>
+                <!-- Social Media -->
+                <div>
+                    <h3 class="font-bold mb-2">Follow Us</h3>
+                    <ul class="space-y-2">
+                        <li><a href="https://facebook.com" target="_blank" class="hover:underline">Facebook</a></li>
+                        <li><a href="https://instagram.com" target="_blank" class="hover:underline">Instagram</a></li>
+                        <li><a href="https://whatsapp.com" target="_blank" class="hover:underline">Whatsapp</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="flex justify-center items-center h-[60px] bg-orange-200">
+                <h1 class="text-center">©2025 by stratastudio.</h1>
+            </div>
+        </footer>
+    </div>
+</template>
+<template x-if="!isMobile">
+    <div>
+        <!-- Content Wrapper -->
+        <div class="content-wrapper"
+             x-ref="contentWrapper"
+             :class="{ 'hidden': hideWrapper }">
+            <!-- Header -->
+            <header class="bg-transparent text-blue-800 py-4 relative container mx-auto">
+                <div class="flex justify-between items-center relative">
+                    <!-- Empty div for spacing -->
+                    <div class="w-24"></div>
+                    <!-- Logo center -->
+                    <div class="flex justify-center items-center">
+                        <svg id="Logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 117.41 15.95"
+                             class="h-[50px] mt-6 mb-4">
+                        </svg>
+                    </div>
+                    <div class="flex space-x-5 w-24">
+                        <template x-for="item in socialItems" :key="item.platform">
+                            <a :href="item.url" target="_blank" :aria-label="item.platform">
+                                <i :class="[item.icon, `text-[#232328] hover:text-${item.color}-500 text-2xl`]"></i>
+                            </a>
+                        </template>
+                    </div>
+                </div>
+            </header>
+            <!-- Navigation -->
+            <nav class="flex justify-center space-x-8 mt-8 mb-8">
+                <template x-for="item in navItems" :key="item.id">
+                    <button
+                            @click="page = item.id"
+                            class="text-2xl hover:text-blue-600"
+                            :class="{ 'font-semibold': page === item.id }"
+                            x-text="item.label">
+                    </button>
+                </template>
+            </nav>
+        </div>
+
+        <!-- Spacer div to prevent content jump -->
+        <div class="content-spacer" x-ref="contentSpacer"></div>
+
+        <!-- Main content -->
+        <main class="w-full">
+            <div x-show="page === 'ourStory'" class="transition-all">
+                <div class="flex flex-col item-center justify-center">
+                    <div class="flex item-center justify-center mt-6 mb-12">
+                        <h1 class="text-4xl">Our Story</h1>
+                    </div>
+                    <div class="h-[200vh]" x-data="parallaxScroll()" x-on:scroll.window="updateParallax()">
+                        <!-- First Section -->
+                        <div class="flex h-screen">
+                            <div class="flex-1 bg-gray-100 flex flex-col justify-center">
+                                <div class="text-center">
+                                    <h1 class="text-3xl mb-4">First Parallax Section</h1>
+                                    <p class="mb-2">Scroll down to see the parallax effect in action!</p>
+                                    <p>The background image will move slower than the page content, creating a depth
+                                        illusion.</p>
+                                </div>
+                            </div>
+                            <div class="flex-1 relative overflow-hidden">
+                                <div id="parallaxImage1"
+                                     class="parallax-image image-1"
+                                     :style="{ transform: `translateY(${firstImageTransform}px)` }">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Second Section -->
+                        <div class="flex h-screen flex-row-reverse">
+                            <div class="flex-1 bg-gray-100 flex flex-col justify-center">
+                                <div class="text-center">
+                                    <h1 class="text-3xl mb-4">Second Parallax Section</h1>
+                                    <p class="mb-2">Notice how the text is now on the right side!</p>
+                                    <p>The image will still move with a parallax effect as you scroll.</p>
+                                </div>
+                            </div>
+                            <div class="flex-1 relative overflow-hidden">
+                                <div id="parallaxImage2"
+                                     class="parallax-image image-2"
+                                     :style="{ transform: `translateY(${secondImageTransform}px)` }">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div x-show="page === 'ourCrafts'" class="transition-all">
+                <h2 class="text-xl font-bold mt-6 mb-12">Our Crafts</h2>
+                <p>Details about the crafts can be listed here.</p>
+            </div>
+
+            <div x-show="page === 'contact'" class="transition-all">
+                <h2 class="text-xl font-bold mt-6 mb-12">Contact</h2>
+                <p>Add contact information or a contact form here.</p>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-blue-600 text-white py-8">
+            <div class="container mx-auto grid grid-cols-1 md:grid-cols-4 gap-4 text-center md:text-left">
+                <!-- Brand Name -->
+                <div>
+                    <h3 class="font-bold text-lg">Koaloa</h3>
+                </div>
+                <!-- Navigation Links -->
+                <div>
+                    <h3 class="font-bold mb-2">Navigate</h3>
+                    <ul class="space-y-2">
+                        <li>
+                            <button @click="page = 'ourStory'" class="hover:underline">Our Story</button>
+                        </li>
+                        <li>
+                            <button @click="page = 'ourCrafts'" class="hover:underline">Our Crafts</button>
+                        </li>
+                        <li>
+                            <button @click="page = 'contact'" class="hover:underline">Contact</button>
+                        </li>
+                    </ul>
+                </div>
+                <!-- FAQ & Policy -->
+                <div>
+                    <h3 class="font-bold mb-2">Support</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="hover:underline">FAQ</a></li>
+                        <li><a href="#" class="hover:underline">Policy</a></li>
+                    </ul>
+                </div>
+                <!-- Social Media -->
+                <div>
+                    <h3 class="font-bold mb-2">Follow Us</h3>
+                    <ul class="space-y-2">
+                        <li><a href="https://facebook.com" target="_blank" class="hover:underline">Facebook</a></li>
+                        <li><a href="https://twitter.com" target="_blank" class="hover:underline">Twitter</a></li>
+                        <li><a href="https://instagram.com" target="_blank" class="hover:underline">Instagram</a></li>
+                    </ul>
+                </div>
+            </div>
+        </footer>
+        <!-- Scroll-to-top button -->
+        <button x-show="showScrollButton" @click="window.scrollTo({ top: 0, behavior: 'smooth' })"
+                class="fixed bottom-4 right-4 bg-blue-600 text-white px-4 py-2 text-2xl rounded-full shadow-lg hover:bg-blue-700">
+            ↑
+        </button>
+
+        <script>
+            function parallaxScroll() {
+                return {
+                    firstImageTransform: 0,
+                    secondImageTransform: 0,
+                    updateParallax() {
+                        requestAnimationFrame(() => {
+                            const scrollPosition = window.pageYOffset;
+                            const windowHeight = window.innerHeight;
+                            const parallaxRate = 0.5;
+
+                            this.firstImageTransform = -windowHeight * 0.1 + scrollPosition * parallaxRate;
+                            this.secondImageTransform = -windowHeight * 0.1 + (scrollPosition - windowHeight) * parallaxRate;
+                        });
+                    }
+                };
+            }
+        </script>
+    </div>
+</template>
+</body>
+
+</html>
